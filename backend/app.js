@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const authRoutes = require('./routes/authRoutes');
@@ -34,17 +35,23 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Lead Management API is running healthy' });
 });
 
-// Production Setup: Serve static build files from frontend/build
-if (process.env.NODE_ENV === 'production') {
-  const buildPath = path.join(__dirname, '../frontend/build');
+// Production Setup: Serve static build files from frontend/build if available
+const buildPath = path.join(__dirname, '../frontend/build');
+const indexHtmlPath = path.join(buildPath, 'index.html');
+
+if (process.env.NODE_ENV === 'production' && fs.existsSync(indexHtmlPath)) {
   app.use(express.static(buildPath));
 
   app.get('*', (req, res) => {
-    res.sendFile(path.resolve(buildPath, 'index.html'));
+    res.sendFile(indexHtmlPath);
   });
 } else {
   app.get('/', (req, res) => {
-    res.json({ message: 'Lead Management API is running in development mode' });
+    res.json({
+      message: 'Lead Management API is active',
+      environment: process.env.NODE_ENV || 'development',
+      frontendBuildStatus: fs.existsSync(indexHtmlPath) ? 'Available' : 'Not Built'
+    });
   });
 }
 
